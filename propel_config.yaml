@@ -1,0 +1,8 @@
+---
+endpoints:
+  f4883ed8-070c-4acc-9e1e-c67c2e3d471d:
+    start_in: .
+    command: whoami
+  881ce173-b02c-4bb5-b1a3-233bae46723a:
+    start_in: .
+    command: ls -la
