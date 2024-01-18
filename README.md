@@ -52,3 +52,7 @@ results in `ls -la` being run in the working directory `propel` was run from.
 
 **A:** Deployment tools/scripts, something as simple as
 `git pull` or as complex as [`cinc-client`](https://cinc.sh/)
+
+**Q: Why not use SSH?**
+
+**A:** 🤷, this seems simpler
