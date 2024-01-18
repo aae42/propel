@@ -4,7 +4,8 @@ Copyright © 2024 NAME HERE <EMAIL ADDRESS>
 package cmd
 
 import (
-	"fmt"
+	"bufio"
+	"log/slog"
 	"net/http"
 	"os"
 	"os/exec"
@@ -31,7 +32,12 @@ var (
 It can be particularly useful for ad hoc management tasks and deployment processes.
 It exposes webhooks that can be used to run a predetermined command on the local
 system.`,
-		Run: func(cmd *cobra.Command, args []string) {},
+		Run: func(cmd *cobra.Command, args []string) {
+			if err := runServer(); err != nil {
+				panic(err)
+			}
+			os.Exit(0)
+		},
 	}
 )
 
@@ -50,15 +56,89 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file path")
 }
 
-func executeCommand(command string, startIn string) {
-	fmt.Printf("running command %s...\n", command)
+func runServer() error {
+	port := viper.GetInt("port")
+	slog.Info("running on port " + strconv.Itoa(port))
+
+	endpointsParsed := make(map[string]*EndpointConfig)
+	err := viper.UnmarshalKey("endpoints", &endpointsParsed)
+	if err != nil {
+		return err
+	}
+
+	mux := http.NewServeMux()
+
+	// logFile, err := os.OpenFile("propel_log.ndjson", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// mw := io.MultiWriter(os.Stderr, logFile)
+	// slog.SetOutput(mw)
+
+	for endpoint := range endpointsParsed {
+		startIn := endpointsParsed[endpoint].StartIn
+		command := endpointsParsed[endpoint].Command
+		endpointToPass := endpoint
+		slog.Info("adding '" + endpoint + "' endpoint...")
+		mux.HandleFunc(
+			("/" + endpoint),
+			func(w http.ResponseWriter, r *http.Request) {
+				err = executeCommand(endpointToPass, command, startIn)
+				if err != nil {
+					slog.Error(err.Error())
+				}
+			},
+		)
+	}
+
+	err = http.ListenAndServe(":"+strconv.Itoa(port), mux)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeCommand(endpoint string, command string, startIn string) error {
+	slog.Debug("POST to " + endpoint + ", running command '" + command + "'...")
 	args := strings.Fields(command)
 	cmd := exec.Command(args[0], args[1:]...)
 	cmd.Dir = startIn
 
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	_ = cmd.Run()
+	pipe, _ := cmd.StdoutPipe()
+	cmd.Stderr = cmd.Stdout
+
+	done := make(chan struct{})
+
+	scanner := bufio.NewScanner(pipe)
+
+	go func() {
+		for scanner.Scan() {
+			line := scanner.Text()
+			slog.Info("output",
+				"endpoint", endpoint,
+				"command", command,
+				"output", line,
+			)
+		}
+
+		done <- struct{}{}
+	}()
+	err := cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	<-done
+
+	err = cmd.Wait()
+	if err != nil {
+		return err
+	}
+	slog.Info("run complete",
+		"endpoint", endpoint,
+		"command", command,
+	)
+	return nil
 }
 
 // initConfig reads in config file and ENV variables if set.
@@ -76,39 +156,6 @@ func initConfig() {
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
-	}
-
-	port := viper.GetInt("port")
-	fmt.Println("port number is: ", port)
-
-	endpointsParsed := make(map[string]*EndpointConfig)
-	err := viper.UnmarshalKey("endpoints", &endpointsParsed)
-	if err != nil {
-		panic(err)
-	}
-
-	mux := http.NewServeMux()
-
-	for endpoint := range endpointsParsed {
-		startIn := endpointsParsed[endpoint].StartIn
-		command := endpointsParsed[endpoint].Command
-		fmt.Printf(
-			"endpoint: '%s' start_in: '%s' command: '%s'...\n",
-			endpoint,
-			startIn,
-			command,
-		)
-		mux.HandleFunc(
-			("/" + endpoint),
-			func(w http.ResponseWriter, r *http.Request) {
-				executeCommand(command, startIn)
-			},
-		)
-	}
-
-	err = http.ListenAndServe(":"+strconv.Itoa(port), mux)
-	if err != nil {
-		panic(err)
+		slog.Info("Using config file: " + viper.ConfigFileUsed())
 	}
 }
