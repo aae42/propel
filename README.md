@@ -46,8 +46,9 @@ results in `ls -la` being run in the working directory `propel` was run from.
 
 **Q: What kind of stuff can I run with this?**
 
-**A:** Whatever you want.
+**A:** Whatever you want
 
-**Q: What kind of stuff should I run with this?**
+**Q: What kind of stuff *should* I run with this?**
 
-**A:** Things like `deploy.sh` or `cinc-client`
+**A:** Deployment tools/scripts, something as simple as
+`git pull` or as complex as [`cinc-client`](https://cinc.sh/)
