@@ -41,3 +41,13 @@ curl -X POST http://localhost:42424/881ce173-b02c-4bb5-b1a3-233bae46723a
 ```
 
 results in `ls -la` being run in the working directory `propel` was run from.
+
+## frequently asked questions
+
+**Q: What kind of stuff can I run with this?**
+
+**A:** Whatever you want.
+
+**Q: What kind of stuff should I run with this?**
+
+**A:** Things like `deploy.sh` or `cinc-client`
