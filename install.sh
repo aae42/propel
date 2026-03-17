@@ -4,7 +4,7 @@ set -e
 # propel installer script
 # Usage: curl -fsSL https://raw.githubusercontent.com/aae42/propel/main/install.sh | bash
 
-REPO="aae42/propel"
+GITHUB_DOWNLOAD="https://github.com/aae42/propel/releases/latest/download"
 BINARY_NAME="propel"
 INSTALL_DIR="${INSTALL_DIR:-/usr/local/bin}"
 
@@ -26,13 +26,6 @@ detect_arch() {
     esac
 }
 
-# Get latest release version from GitHub
-get_latest_version() {
-    curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" |
-        grep '"tag_name":' |
-        sed -E 's/.*"([^"]+)".*/\1/'
-}
-
 main() {
     OS=$(detect_os)
     ARCH=$(detect_arch)
@@ -49,18 +42,9 @@ main() {
 
     echo "Detected: ${OS} ${ARCH}"
 
-    VERSION=$(get_latest_version)
-    if [ -z "$VERSION" ]; then
-        echo "Error: Could not determine latest version"
-        exit 1
-    fi
-
-    echo "Latest version: ${VERSION}"
-
-    # Construct download URL
+    # Construct download URL (uses GitHub's redirect to latest release)
     FILENAME="${BINARY_NAME}_${OS}_${ARCH}"
-
-    DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${FILENAME}"
+    DOWNLOAD_URL="${GITHUB_DOWNLOAD}/${FILENAME}"
 
     echo "Downloading ${DOWNLOAD_URL}..."
 
@@ -84,7 +68,7 @@ main() {
     fi
 
     echo ""
-    echo "Successfully installed propel ${VERSION} to ${INSTALL_DIR}/${BINARY_NAME}"
+    echo "Successfully installed propel to ${INSTALL_DIR}/${BINARY_NAME}"
     echo ""
     echo "Run 'propel version' to verify the installation"
 }
