@@ -5,6 +5,7 @@ package cmd
 
 import (
 	"bufio"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -15,6 +16,19 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
+
+var (
+	version = "dev"
+	commit  = "none"
+	date    = "unknown"
+)
+
+// SetVersionInfo sets the version information for the CLI
+func SetVersionInfo(v, c, d string) {
+	version = v
+	commit = c
+	date = d
+}
 
 type EndpointConfig struct {
 	StartIn string `mapstructure:"start_in"`
@@ -54,6 +68,16 @@ func init() {
 	rootCmd.Flags().Int("port", 42424, "port number to listen on")
 	viper.BindPFlag("port", rootCmd.Flags().Lookup("port"))
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file path")
+
+	rootCmd.AddCommand(&cobra.Command{
+		Use:   "version",
+		Short: "Print version information",
+		Run: func(cmd *cobra.Command, args []string) {
+			fmt.Printf("propel %s\n", version)
+			fmt.Printf("  commit: %s\n", commit)
+			fmt.Printf("  built:  %s\n", date)
+		},
+	})
 }
 
 func runServer() error {
