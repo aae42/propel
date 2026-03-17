@@ -13,6 +13,14 @@ processes.
 
 ## quick start
 
+Install with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/aae42/propel/main/install.sh | bash
+```
+
+**or**
+
 Build the executable with `go build`.
 Requires Go 1.21.
 
